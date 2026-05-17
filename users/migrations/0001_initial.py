@@ -95,6 +95,7 @@ class Migration(migrations.Migration):
                 ("email", models.EmailField(max_length=254, unique=True)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
+                ("is_verified", models.BooleanField(default=False)),
                 (
                     "groups",
                     models.ManyToManyField(
@@ -121,6 +122,7 @@ class Migration(migrations.Migration):
             options={
                 "verbose_name": "user",
                 "verbose_name_plural": "users",
+                "db_table": "users",
                 "abstract": False,
             },
             managers=[
