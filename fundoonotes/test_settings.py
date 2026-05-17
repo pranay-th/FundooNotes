@@ -4,7 +4,6 @@ test_settings.py — Django settings overrides for the pytest test suite.
 Inherits from the main settings and overrides:
   - DATABASE: SQLite file-based (no PostgreSQL needed)
   - CACHES: local-memory (no Redis needed)
-  - INSTALLED_APPS: removes apps that don't exist yet (notes, labels)
 """
 import os
 from fundoonotes.settings import *  # noqa: F401, F403
@@ -31,14 +30,6 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
     }
 }
-
-# ---------------------------------------------------------------------------
-# Remove apps that haven't been created yet
-# ---------------------------------------------------------------------------
-INSTALLED_APPS = [
-    app for app in INSTALLED_APPS  # noqa: F405
-    if app not in {"notes", "labels"}
-]
 
 # ---------------------------------------------------------------------------
 # Disable URL patterns that reference missing apps
