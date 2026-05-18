@@ -1,4 +1,5 @@
 from django.core.cache import cache
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -15,6 +16,17 @@ from .services import (
 )
 
 
+@extend_schema(
+    methods=["GET"],
+    operation_id="notes_list",
+    responses={200: NoteSerializer(many=True)},
+)
+@extend_schema(
+    methods=["POST"],
+    operation_id="notes_create",
+    request=NoteSerializer,
+    responses={201: NoteSerializer},
+)
 @api_view(["GET", "POST"])
 @permission_classes([IsAuthenticated])
 def notes_list_create(request):
@@ -45,6 +57,28 @@ def notes_list_create(request):
     )
 
 
+@extend_schema(
+    methods=["GET"],
+    operation_id="notes_retrieve",
+    responses={200: NoteSerializer},
+)
+@extend_schema(
+    methods=["PUT"],
+    operation_id="notes_update",
+    request=NoteSerializer,
+    responses={200: NoteSerializer},
+)
+@extend_schema(
+    methods=["PATCH"],
+    operation_id="notes_partial_update",
+    request=NoteSerializer,
+    responses={200: NoteSerializer},
+)
+@extend_schema(
+    methods=["DELETE"],
+    operation_id="notes_destroy",
+    responses={204: None},
+)
 @api_view(["GET", "PUT", "PATCH", "DELETE"])
 @permission_classes([IsAuthenticated])
 def note_detail(request, pk: int):
