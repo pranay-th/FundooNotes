@@ -3,8 +3,23 @@ from django.conf import settings
 
 
 class Note(models.Model):
+    COLOR_CHOICES = [
+        ("default", "Default"),
+        ("red",     "Red"),
+        ("orange",  "Orange"),
+        ("yellow",  "Yellow"),
+        ("green",   "Green"),
+        ("teal",    "Teal"),
+        ("blue",    "Blue"),
+        ("purple",  "Purple"),
+        ("pink",    "Pink"),
+        ("brown",   "Brown"),
+        ("gray",    "Gray"),
+    ]
+
     title       = models.CharField(max_length=255)
     content     = models.TextField(blank=True)
+    color       = models.CharField(max_length=20, choices=COLOR_CHOICES, default="default")
     is_archived = models.BooleanField(default=False)
     is_trashed  = models.BooleanField(default=False)
     created_at  = models.DateTimeField(auto_now_add=True)

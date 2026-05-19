@@ -5,16 +5,13 @@ from .models import Label
 
 class LabelSerializer(serializers.ModelSerializer):
     """
-    Serializer for the Label model.
+    Input/output serializer for Label.
 
-    Preconditions:
-        - title: non-empty string, max 100 chars
-    Postconditions:
-        - id, created_at, updated_at are read-only
-        - created_by is excluded from input/output (set by service layer)
+    Output fields: title only — id and timestamps are internal.
+    Input fields:  title (required, unique per user — enforced in service layer).
     """
 
     class Meta:
         model = Label
-        fields = ["id", "title", "created_at", "updated_at"]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        fields = ["title"]
+        

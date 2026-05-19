@@ -35,9 +35,12 @@ def labels_list_create(request):
     """
     if request.method == "GET":
         labels = get_labels_for_user(request.user)
-        serializer = LabelSerializer(labels, many=True)
+        # Single-field output: return a flat list of title strings
         return Response(
-            success_response("Labels retrieved successfully.", serializer.data),
+            success_response(
+                "Labels retrieved successfully.",
+                [label.title for label in labels],
+            ),
             status=status.HTTP_200_OK,
         )
 
@@ -49,9 +52,8 @@ def labels_list_create(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
     label = create_label(request.user, serializer.validated_data)
-    out = LabelSerializer(label)
     return Response(
-        success_response("Label created successfully.", out.data),
+        success_response("Label created successfully.", label.title),
         status=status.HTTP_201_CREATED,
     )
 
@@ -90,9 +92,8 @@ def label_detail(request, pk: int):
     label = get_label_or_403(pk, request.user)
 
     if request.method == "GET":
-        serializer = LabelSerializer(label)
         return Response(
-            success_response("Label retrieved successfully.", serializer.data),
+            success_response("Label retrieved successfully.", label.title),
             status=status.HTTP_200_OK,
         )
 
@@ -109,8 +110,7 @@ def label_detail(request, pk: int):
             status=status.HTTP_400_BAD_REQUEST,
         )
     updated = update_label(label, serializer.validated_data, partial=partial)
-    out = LabelSerializer(updated)
     return Response(
-        success_response("Label updated successfully.", out.data),
+        success_response("Label updated successfully.", updated.title),
         status=status.HTTP_200_OK,
     )

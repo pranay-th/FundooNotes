@@ -12,7 +12,8 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "username", "email", "phone_number", "password"]
+        # id excluded — internal identifier, not shown to the user
+        fields = ["username", "email", "phone_number", "password"]
 
     def validate_email(self, value: str) -> str:
         if User.objects.filter(email=value).exists():
@@ -70,8 +71,9 @@ class LoginSerializer(serializers.Serializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "username", "email", "phone_number", "is_verified", "created_at"]
-        read_only_fields = ["id", "email", "is_verified", "created_at"]
+        # id excluded — internal identifier, not shown to the user
+        fields = ["username", "email", "phone_number", "is_verified"]
+        read_only_fields = ["email", "is_verified"]
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):
