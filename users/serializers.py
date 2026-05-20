@@ -1,8 +1,6 @@
-from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 
 from rest_framework import serializers
-from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import User
 
@@ -42,30 +40,28 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class LoginSerializer(serializers.Serializer):
+    """Step 1: validate credentials and trigger OTP dispatch."""
+
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
 
     def validate(self, data: dict) -> dict:
-        username = data.get("username")
-        password = data.get("password")
+        from .services import initiate_login
 
-        user = authenticate(username=username, password=password)
+        email = initiate_login(data["username"], data["password"])
+        return {"email": email}
 
-        if user is None:
-            raise serializers.ValidationError("Invalid credentials")
 
-        if not user.is_verified:
-            raise serializers.ValidationError("Email not verified. Check your inbox.")
+class OTPVerifySerializer(serializers.Serializer):
+    """Step 2: verify the OTP and return JWT tokens."""
 
-        if not user.is_active:
-            raise serializers.ValidationError("Account is deactivated.")
+    username = serializers.CharField(help_text="The email address used to log in.")
+    otp = serializers.CharField(max_length=6, min_length=6)
 
-        refresh = RefreshToken.for_user(user)
+    def validate(self, data: dict) -> dict:
+        from .services import verify_login_otp
 
-        return {
-            "refresh": str(refresh),
-            "access": str(refresh.access_token),
-        }
+        return verify_login_otp(data["username"], data["otp"])
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
