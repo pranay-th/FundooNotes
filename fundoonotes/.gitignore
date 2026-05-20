@@ -15,6 +15,3 @@ env/
 # IDE
 .vscode/
 .idea/
-
-# Kiro
-.kiro/
