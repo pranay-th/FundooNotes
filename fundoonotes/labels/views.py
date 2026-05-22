@@ -16,11 +16,13 @@ from .services import (
 
 
 @extend_schema(
+    tags=["Labels"],
     methods=["GET"],
     operation_id="labels_list",
     responses={200: LabelSerializer(many=True)},
 )
 @extend_schema(
+    tags=["Labels"],
     methods=["POST"],
     operation_id="labels_create",
     request=LabelSerializer,
@@ -59,23 +61,27 @@ def labels_list_create(request):
 
 
 @extend_schema(
+    tags=["Labels"],
     methods=["GET"],
     operation_id="labels_retrieve",
     responses={200: LabelSerializer},
 )
 @extend_schema(
+    tags=["Labels"],
     methods=["PUT"],
     operation_id="labels_update",
     request=LabelSerializer,
     responses={200: LabelSerializer},
 )
 @extend_schema(
+    tags=["Labels"],
     methods=["PATCH"],
     operation_id="labels_partial_update",
     request=LabelSerializer,
     responses={200: LabelSerializer},
 )
 @extend_schema(
+    tags=["Labels"],
     methods=["DELETE"],
     operation_id="labels_destroy",
     responses={204: None},

@@ -11,11 +11,13 @@ GET /api/stats/requests/
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema
 
 from common.middleware import get_request_counts
 from common.response import success_response
 
 
+@extend_schema(tags=["Stats"])
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def request_stats(request) -> Response:

@@ -17,11 +17,13 @@ from .services import (
 
 
 @extend_schema(
+    tags=["Notes"],
     methods=["GET"],
     operation_id="notes_list",
     responses={200: NoteSerializer(many=True)},
 )
 @extend_schema(
+    tags=["Notes"],
     methods=["POST"],
     operation_id="notes_create",
     request=NoteSerializer,
@@ -58,23 +60,27 @@ def notes_list_create(request):
 
 
 @extend_schema(
+    tags=["Notes"],
     methods=["GET"],
     operation_id="notes_retrieve",
     responses={200: NoteSerializer},
 )
 @extend_schema(
+    tags=["Notes"],
     methods=["PUT"],
     operation_id="notes_update",
     request=NoteSerializer,
     responses={200: NoteSerializer},
 )
 @extend_schema(
+    tags=["Notes"],
     methods=["PATCH"],
     operation_id="notes_partial_update",
     request=NoteSerializer,
     responses={200: NoteSerializer},
 )
 @extend_schema(
+    tags=["Notes"],
     methods=["DELETE"],
     operation_id="notes_destroy",
     responses={204: None},

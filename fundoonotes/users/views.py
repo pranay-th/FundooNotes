@@ -27,7 +27,7 @@ from .services import (
 )
 
 
-@extend_schema(operation_id="users_register", request=RegisterSerializer, responses={201: UserProfileSerializer})
+@extend_schema(tags=["Auth"], operation_id="users_register", request=RegisterSerializer, responses={201: UserProfileSerializer})
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def register(request) -> Response:
@@ -56,7 +56,7 @@ def register(request) -> Response:
     )
 
 
-@extend_schema(operation_id="users_login", request=LoginSerializer, responses={202: None})
+@extend_schema(tags=["Auth"], operation_id="users_login", request=LoginSerializer, responses={202: None})
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def login(request) -> Response:
@@ -87,7 +87,7 @@ def login(request) -> Response:
     )
 
 
-@extend_schema(operation_id="users_login_verify_otp", request=OTPVerifySerializer, responses={200: None})
+@extend_schema(tags=["Auth"], operation_id="users_login_verify_otp", request=OTPVerifySerializer, responses={200: None})
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def verify_otp(request) -> Response:
@@ -114,7 +114,7 @@ def verify_otp(request) -> Response:
     )
 
 
-@extend_schema(operation_id="users_logout", request=None, responses={200: None})
+@extend_schema(tags=["Auth"], operation_id="users_logout", request=None, responses={200: None})
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def logout(request) -> Response:
@@ -142,9 +142,9 @@ def logout(request) -> Response:
         )
 
 
-@extend_schema(methods=["GET"], operation_id="users_profile_retrieve", responses={200: UserProfileSerializer})
-@extend_schema(methods=["PUT"], operation_id="users_profile_update", request=UserProfileSerializer, responses={200: UserProfileSerializer})
-@extend_schema(methods=["DELETE"], operation_id="users_profile_destroy", responses={204: None})
+@extend_schema(tags=["Users"], methods=["GET"], operation_id="users_profile_retrieve", responses={200: UserProfileSerializer})
+@extend_schema(tags=["Users"], methods=["PUT"], operation_id="users_profile_update", request=UserProfileSerializer, responses={200: UserProfileSerializer})
+@extend_schema(tags=["Users"], methods=["DELETE"], operation_id="users_profile_destroy", responses={204: None})
 @api_view(["GET", "PUT", "DELETE"])
 @permission_classes([IsAuthenticated])
 def profile(request) -> Response:
@@ -183,7 +183,7 @@ def profile(request) -> Response:
     return Response(status=204)
 
 
-@extend_schema(operation_id="users_reset_password_request", request=PasswordResetRequestSerializer, responses={200: None})
+@extend_schema(tags=["Auth"], operation_id="users_reset_password_request", request=PasswordResetRequestSerializer, responses={200: None})
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def reset_password_request(request) -> Response:
@@ -204,7 +204,7 @@ def reset_password_request(request) -> Response:
     )
 
 
-@extend_schema(operation_id="users_reset_password_confirm", request=PasswordResetConfirmSerializer, responses={200: None})
+@extend_schema(tags=["Auth"], operation_id="users_reset_password_confirm", request=PasswordResetConfirmSerializer, responses={200: None})
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def reset_password_confirm(request) -> Response:
@@ -239,6 +239,7 @@ def reset_password_confirm(request) -> Response:
 
 
 @extend_schema(
+    tags=["Auth"],
     operation_id="users_verify_email",
     parameters=[OpenApiParameter("token", OpenApiTypes.STR, OpenApiParameter.QUERY, required=True)],
     responses={200: None},
