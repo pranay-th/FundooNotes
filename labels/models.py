@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from typing import List
 
 
 class Label(models.Model):

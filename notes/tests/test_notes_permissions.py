@@ -1,11 +1,17 @@
 import pytest
-from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
+from rest_framework.test import APIClient
+
+from notes.models import Note
 
 User = get_user_model()
 
 NOTES_URL = "/api/notes/"
 
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
 
 @pytest.fixture
 def user(db):
@@ -42,26 +48,30 @@ def other_client(other_user):
 
 
 @pytest.fixture
-def note(auth_client):
-    """Create a note owned by the primary user and return its id."""
-    response = auth_client.post(
+def note_pk(auth_client, user):
+    """Create a note owned by the primary user and return its DB pk."""
+    auth_client.post(
         NOTES_URL,
         {"title": "Owner Note", "content": "Owner content"},
         format="json",
     )
-    return response.data["payload"]["id"]
+    return Note.objects.get(created_by=user, title="Owner Note").pk
 
+
+# ---------------------------------------------------------------------------
+# Ownership enforcement (403)
+# ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
-def test_get_note_by_non_owner_returns_403(other_client, note):
-    response = other_client.get(f"{NOTES_URL}{note}/")
+def test_get_note_by_non_owner_returns_403(other_client, note_pk):
+    response = other_client.get(f"{NOTES_URL}{note_pk}/")
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
-def test_put_note_by_non_owner_returns_403(other_client, note):
+def test_put_note_by_non_owner_returns_403(other_client, note_pk):
     response = other_client.put(
-        f"{NOTES_URL}{note}/",
+        f"{NOTES_URL}{note_pk}/",
         {"title": "Hacked", "content": "Hacked content"},
         format="json",
     )
@@ -69,9 +79,9 @@ def test_put_note_by_non_owner_returns_403(other_client, note):
 
 
 @pytest.mark.django_db
-def test_patch_note_by_non_owner_returns_403(other_client, note):
+def test_patch_note_by_non_owner_returns_403(other_client, note_pk):
     response = other_client.patch(
-        f"{NOTES_URL}{note}/",
+        f"{NOTES_URL}{note_pk}/",
         {"title": "Hacked"},
         format="json",
     )
@@ -79,10 +89,14 @@ def test_patch_note_by_non_owner_returns_403(other_client, note):
 
 
 @pytest.mark.django_db
-def test_delete_note_by_non_owner_returns_403(other_client, note):
-    response = other_client.delete(f"{NOTES_URL}{note}/")
+def test_delete_note_by_non_owner_returns_403(other_client, note_pk):
+    response = other_client.delete(f"{NOTES_URL}{note_pk}/")
     assert response.status_code == 403
 
+
+# ---------------------------------------------------------------------------
+# 404 on non-existent note
+# ---------------------------------------------------------------------------
 
 @pytest.mark.django_db
 def test_get_nonexistent_note_returns_404(auth_client):
@@ -90,11 +104,14 @@ def test_get_nonexistent_note_returns_404(auth_client):
     assert response.status_code == 404
 
 
+# ---------------------------------------------------------------------------
+# Label ownership enforcement on note creation
+# ---------------------------------------------------------------------------
+
 @pytest.mark.django_db
 def test_assign_foreign_label_to_note_returns_error(auth_client, other_user):
     from labels.models import Label
 
-    # Create a label owned by other_user
     foreign_label = Label.objects.create(
         title="Foreign Label",
         created_by=other_user,
