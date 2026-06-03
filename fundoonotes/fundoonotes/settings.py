@@ -198,35 +198,6 @@ USE_TZ = True
 STATIC_URL = "static/"
 
 # ---------------------------------------------------------------------------
-# drf-spectacular — OpenAPI / Swagger configuration
-# ---------------------------------------------------------------------------
-SPECTACULAR_SETTINGS = {
-    "TITLE": "FundooNotes API",
-    "DESCRIPTION": (
-        "REST API for the FundooNotes application.\n\n"
-        "## Authentication\n"
-        "All protected endpoints require a JWT Bearer token in the `Authorization` header.\n"
-        "Use the **Auth** endpoints to register, log in (2-step OTP), and obtain tokens.\n\n"
-        "## Services\n"
-        "- **Auth** — registration, login, OTP verification, email verification, password reset\n"
-        "- **Users** — profile management\n"
-        "- **Notes** — create, read, update, archive, and trash notes\n"
-        "- **Labels** — manage note labels\n"
-        "- **Token** — JWT token refresh\n"
-        "- **Stats** — internal request counters\n"
-    ),
-    "VERSION": "1.0.0",
-    "SERVE_INCLUDE_SCHEMA": False,
-    "SWAGGER_UI_SETTINGS": {
-        "deepLinking": True,
-        "persistAuthorization": True,
-        "displayOperationId": False,
-    },
-    "COMPONENT_SPLIT_REQUEST": True,
-    "SORT_OPERATIONS": False,
-}
-
-# ---------------------------------------------------------------------------
 # Loguru — structured file logging
 # ---------------------------------------------------------------------------
 logger.add(
