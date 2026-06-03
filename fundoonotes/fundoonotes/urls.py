@@ -2,13 +2,9 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.views import TokenRefreshView
-from drf_spectacular.utils import extend_schema
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from common.views import request_stats
-
-# Tag the simplejwt TokenRefreshView so it appears under the "Token" group in Swagger
-TokenRefreshView = extend_schema(tags=["Token"])(TokenRefreshView)
 
 urlpatterns = [
     path("admin/", admin.site.urls),

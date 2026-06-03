@@ -7,11 +7,11 @@ class LabelSerializer(serializers.ModelSerializer):
     """
     Input/output serializer for Label.
 
-    Output fields: title only — id and timestamps are internal.
+    Output fields: id, title, created_at, updated_at
     Input fields:  title (required, unique per user — enforced in service layer).
     """
 
     class Meta:
         model = Label
-        fields = ["title"]
-        
+        fields = ["id", "title", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at"]

@@ -67,9 +67,8 @@ class OTPVerifySerializer(serializers.Serializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        # id excluded — internal identifier, not shown to the user
-        fields = ["username", "email", "phone_number", "is_verified"]
-        read_only_fields = ["email", "is_verified"]
+        fields = ["id", "username", "email", "phone_number", "is_verified"]
+        read_only_fields = ["id", "email", "is_verified"]
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):

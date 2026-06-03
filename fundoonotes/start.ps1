@@ -1,12 +1,13 @@
-# start.ps1 - Start Django + Celery + FastAPI Collaboration Service together in one terminal
+# start.ps1 - Start Django + Celery + FastAPI Collaboration Service + React Frontend
 # Run from the fundoonotes/ directory: .\start.ps1
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 Set-Location $scriptDir
 
-# Resolve the collab_service directory (sibling of fundoonotes/)
-$repoRoot   = Split-Path -Parent $scriptDir
-$collabDir  = Join-Path $repoRoot "collab_service"
+# Resolve the collab_service and frontend directories (siblings of fundoonotes/)
+$repoRoot    = Split-Path -Parent $scriptDir
+$collabDir   = Join-Path $repoRoot "collab_service"
+$frontendDir = Join-Path $repoRoot "fundoonotes-frontend"
 
 Write-Host "==> Running Django migrations..." -ForegroundColor Cyan
 python manage.py migrate
@@ -28,10 +29,12 @@ Pop-Location
 
 # Ensure logs directory exists
 New-Item -ItemType Directory -Force -Path "$scriptDir\logs" | Out-Null
-$celeryOut = "$scriptDir\logs\celery.log"
-$celeryErr = "$scriptDir\logs\celery_err.log"
-$collabOut = "$scriptDir\logs\collab_service.log"
-$collabErr = "$scriptDir\logs\collab_service_err.log"
+$celeryOut   = "$scriptDir\logs\celery.log"
+$celeryErr   = "$scriptDir\logs\celery_err.log"
+$collabOut   = "$scriptDir\logs\collab_service.log"
+$collabErr   = "$scriptDir\logs\collab_service_err.log"
+$frontendOut = "$scriptDir\logs\frontend.log"
+$frontendErr = "$scriptDir\logs\frontend_err.log"
 
 Write-Host ""
 Write-Host "==> Starting Celery worker in background..." -ForegroundColor Cyan
@@ -80,11 +83,46 @@ Write-Host "    Collab Service PID: $($collab.Id) - OK" -ForegroundColor Green
 Write-Host "    Collab logs: $collabOut / $collabErr" -ForegroundColor DarkGray
 
 Write-Host ""
+Write-Host "==> Starting React frontend (Vite dev server)..." -ForegroundColor Cyan
+
+# Check node_modules exist; install if not
+$nodeModulesPath = Join-Path $frontendDir "node_modules"
+if (-not (Test-Path $nodeModulesPath)) {
+    Write-Host "    node_modules not found - running npm install..." -ForegroundColor Yellow
+    Push-Location $frontendDir
+    & npm install
+    Pop-Location
+}
+
+# Use cmd to run npm (more reliable on Windows)
+$frontend = Start-Process -FilePath "cmd" `
+    -ArgumentList "/c npm run dev" `
+    -WorkingDirectory $frontendDir `
+    -RedirectStandardOutput $frontendOut `
+    -RedirectStandardError $frontendErr `
+    -PassThru `
+    -NoNewWindow
+
+Start-Sleep -Seconds 4
+
+if ($frontend.HasExited) {
+    Write-Host "ERROR: Frontend failed to start. Check logs\frontend_err.log" -ForegroundColor Red
+    Get-Content $frontendErr
+    Stop-Process -Id $celery.Id -Force -ErrorAction SilentlyContinue
+    Stop-Process -Id $collab.Id -Force -ErrorAction SilentlyContinue
+    exit 1
+}
+
+Write-Host "    Frontend PID: $($frontend.Id) - OK" -ForegroundColor Green
+Write-Host "    Frontend logs: $frontendOut / $frontendErr" -ForegroundColor DarkGray
+
+Write-Host ""
 Write-Host "==> Starting Django dev server..." -ForegroundColor Cyan
 Write-Host "    Django API:          http://localhost:8000" -ForegroundColor Green
 Write-Host "    Django Docs:         http://localhost:8000/api/docs/" -ForegroundColor Green
 Write-Host "    Collab Service API:  http://localhost:8001" -ForegroundColor Green
 Write-Host "    Collab Service Docs: http://localhost:8001/docs" -ForegroundColor Green
+Write-Host "    React Frontend:      http://localhost:5173" -ForegroundColor Green
 Write-Host ""
 Write-Host "Press Ctrl+C to stop all services." -ForegroundColor Yellow
 Write-Host ""
@@ -98,5 +136,7 @@ try {
     Write-Host "    Celery (PID $($celery.Id)) stopped." -ForegroundColor DarkGray
     Stop-Process -Id $collab.Id -Force -ErrorAction SilentlyContinue
     Write-Host "    Collaboration Service (PID $($collab.Id)) stopped." -ForegroundColor DarkGray
+    Stop-Process -Id $frontend.Id -Force -ErrorAction SilentlyContinue
+    Write-Host "    React Frontend (PID $($frontend.Id)) stopped." -ForegroundColor DarkGray
     Write-Host "Done." -ForegroundColor Green
 }
