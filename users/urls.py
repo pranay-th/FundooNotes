@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     register,
     login,
+    verify_otp,
     logout,
     profile,
     reset_password_request,
@@ -13,6 +14,7 @@ from .views import (
 urlpatterns = [
     path("register/", register, name="register"),
     path("login/", login, name="login"),
+    path("login/verify-otp/", verify_otp, name="login-verify-otp"),
     path("logout/", logout, name="logout"),
     path("profile/", profile, name="profile"),
     path("reset-password/", reset_password_request, name="reset-password"),

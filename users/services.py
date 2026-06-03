@@ -11,8 +11,8 @@ from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import User
-from .utils import generate_verification_token, generate_password_reset_token
-from common.tasks import send_verification_email, send_password_reset_email
+from .utils import generate_verification_token, generate_password_reset_token, generate_login_otp
+from common.tasks import send_verification_email, send_password_reset_email, send_login_otp_email
 
 
 def register_user(validated_data: dict) -> User:
@@ -49,27 +49,27 @@ def register_user(validated_data: dict) -> User:
     return user
 
 
-def authenticate_user(username: str, password: str) -> dict:
+def initiate_login(username: str, password: str) -> str:
     """
-    Authenticate a user and return a JWT token pair.
+    Validate credentials and send a login OTP to the user's email.
 
     Preconditions:
         - username and password are non-empty strings
     Postconditions:
-        - Returns {"refresh": str, "access": str} on success
-        - Raises ValidationError on invalid credentials, unverified account,
-          or deactivated account
-        - No side effects on the user record
+        - OTP stored in Redis under 'login_otp_{user_id}' with TTL=300s
+        - Celery task enqueued to send OTP email (non-blocking)
+        - Returns the user's email address
 
     Args:
-        username: The user's username (or email, depending on backend config).
+        username: The user's email (USERNAME_FIELD).
         password: The user's plaintext password.
 
     Returns:
-        Dict with "refresh" and "access" JWT token strings.
+        The user's email address (so the caller can tell the user where the OTP was sent).
 
     Raises:
-        serializers.ValidationError: On any authentication failure.
+        serializers.ValidationError: On invalid credentials, unverified account,
+            or deactivated account.
     """
     user = authenticate(username=username, password=password)
 
@@ -81,6 +81,49 @@ def authenticate_user(username: str, password: str) -> dict:
 
     if not user.is_active:
         raise serializers.ValidationError("Account is deactivated.")
+
+    otp = generate_login_otp(user.id)
+    send_login_otp_email.delay(user.email, otp)
+
+    return user.email
+
+
+def verify_login_otp(username: str, otp: str) -> dict:
+    """
+    Verify the login OTP and return a JWT token pair.
+
+    Preconditions:
+        - username is the user's email
+        - otp is a 6-digit string
+    Postconditions:
+        - Returns {"refresh": str, "access": str} on success
+        - OTP removed from Redis (single-use enforcement)
+        - Raises ValidationError on invalid/expired OTP or unknown user
+
+    Args:
+        username: The user's email address.
+        otp: The 6-digit OTP from the email.
+
+    Returns:
+        Dict with "refresh" and "access" JWT token strings.
+
+    Raises:
+        serializers.ValidationError: If the OTP is invalid or expired.
+    """
+    try:
+        user = User.objects.get(email=username)
+    except User.DoesNotExist:
+        raise serializers.ValidationError("Invalid request.")
+
+    stored_otp = cache.get(f"login_otp_{user.id}")
+
+    if stored_otp is None:
+        raise serializers.ValidationError("OTP has expired. Please log in again.")
+
+    if stored_otp != otp:
+        raise serializers.ValidationError("Invalid OTP.")
+
+    cache.delete(f"login_otp_{user.id}")
 
     refresh = RefreshToken.for_user(user)
     return {

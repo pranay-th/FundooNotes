@@ -1,4 +1,5 @@
 import uuid
+import random
 from django.core.cache import cache
 
 
@@ -22,3 +23,14 @@ def generate_password_reset_token(user_id: int) -> str:
     token = str(uuid.uuid4())
     cache.set(f"pwd_reset_{token}", user_id, timeout=3600)
     return token
+
+
+def generate_login_otp(user_id: int) -> str:
+    """
+    Generate a 6-digit OTP for login verification.
+    Stores user_id in Redis under 'login_otp_{otp}' with TTL=300s (5 minutes).
+    Returns the OTP string.
+    """
+    otp = f"{random.randint(0, 999999):06d}"
+    cache.set(f"login_otp_{user_id}", otp, timeout=300)
+    return otp

@@ -90,3 +90,42 @@ def send_password_reset_email(self, email: str, token: str) -> None:
             f"(attempt {self.request.retries + 1}/{self.max_retries + 1}): {exc}"
         )
         raise self.retry(exc=exc)
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def send_login_otp_email(self, email: str, otp: str) -> None:
+    """
+    Send a login OTP email to the given address.
+
+    Preconditions:
+        - email is a valid email address string
+        - otp is a 6-digit string stored in Redis with TTL=300
+    Postconditions:
+        - Email dispatched via SMTP containing the OTP
+        - On SMTP failure: task retried up to 3 times (60 s apart)
+        - On permanent failure after all retries: task marked as FAILED
+
+    Args:
+        email: Recipient email address.
+        otp: 6-digit one-time password.
+    """
+    try:
+        send_mail(
+            subject="Your fundooNotes login OTP",
+            message=(
+                f"Your one-time password (OTP) for logging into fundooNotes is:\n\n"
+                f"  {otp}\n\n"
+                f"This OTP expires in 5 minutes. Do not share it with anyone.\n"
+                f"If you did not attempt to log in, please ignore this email."
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+        logger.info(f"Login OTP email sent to {email}")
+    except Exception as exc:
+        logger.error(
+            f"Failed to send login OTP email to {email} "
+            f"(attempt {self.request.retries + 1}/{self.max_retries + 1}): {exc}"
+        )
+        raise self.retry(exc=exc)

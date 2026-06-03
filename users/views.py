@@ -12,13 +12,15 @@ from common.response import success_response, error_response
 from .serializers import (
     RegisterSerializer,
     LoginSerializer,
+    OTPVerifySerializer,
     UserProfileSerializer,
     PasswordResetRequestSerializer,
     PasswordResetConfirmSerializer,
 )
 from .services import (
     register_user,
-    authenticate_user,
+    initiate_login,
+    verify_login_otp,
     initiate_password_reset,
     confirm_password_reset,
     verify_email_token,
@@ -54,26 +56,60 @@ def register(request) -> Response:
     )
 
 
-@extend_schema(operation_id="users_login", request=LoginSerializer, responses={200: None})
+@extend_schema(operation_id="users_login", request=LoginSerializer, responses={202: None})
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def login(request) -> Response:
     """
     POST /api/users/login/
+    Step 1 of 2-factor login: validate credentials and send OTP.
+
     Preconditions:
-      - request.data contains username/email and password
+      - request.data contains username (email) and password
     Postconditions:
-      - 200: Returns {"access": str, "refresh": str}
-      - 400: Invalid credentials or unverified account
+      - 202: OTP sent to the user's registered email
+      - 400: Invalid credentials, unverified account, or deactivated account
     """
     serializer = LoginSerializer(data=request.data)
+    if serializer.is_valid():
+        email = serializer.validated_data["email"]
+        return Response(
+            success_response(
+                f"OTP sent to {email}. Please verify to complete login.",
+                {"email": email},
+                202,
+            ),
+            status=202,
+        )
+    return Response(
+        error_response("Login failed.", serializer.errors, 400),
+        status=400,
+    )
+
+
+@extend_schema(operation_id="users_login_verify_otp", request=OTPVerifySerializer, responses={200: None})
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def verify_otp(request) -> Response:
+    """
+    POST /api/users/login/verify-otp/
+    Step 2 of 2-factor login: verify OTP and return JWT tokens.
+
+    Preconditions:
+      - request.data contains username (email) and otp (6-digit string)
+      - OTP must not be expired (TTL: 5 minutes)
+    Postconditions:
+      - 200: Returns {"access": str, "refresh": str}
+      - 400: Invalid or expired OTP
+    """
+    serializer = OTPVerifySerializer(data=request.data)
     if serializer.is_valid():
         return Response(
             success_response("Login successful.", serializer.validated_data, 200),
             status=200,
         )
     return Response(
-        error_response("Login failed.", serializer.errors, 400),
+        error_response("OTP verification failed.", serializer.errors, 400),
         status=400,
     )
 
