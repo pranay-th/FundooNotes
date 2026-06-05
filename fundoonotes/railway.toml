@@ -1,8 +1,5 @@
-[build]
-builder = "NIXPACKS"
-
 [deploy]
-releaseCommand = "python manage.py migrate --no-input && python manage.py collectstatic --no-input"
+preDeployCommand = "python manage.py migrate --no-input && python manage.py collectstatic --no-input"
 startCommand = "gunicorn fundoonotes.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
 healthcheckPath = "/api/schema/"
 healthcheckTimeout = 300
