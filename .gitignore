@@ -12,9 +12,8 @@ db.sqlite3
 venv/
 env/
 
-# IDE
-.vscode/
-.idea/
-
+# PostgreSQL dump files
+*.dump
+*.sql
 # Kiro
 .kiro/
