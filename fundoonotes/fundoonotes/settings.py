@@ -114,14 +114,16 @@ else:
 # ---------------------------------------------------------------------------
 # Cache — Redis via django-redis
 # ---------------------------------------------------------------------------
+import ssl as _ssl
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": config("REDIS_URL", default="redis://localhost:6379/1"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            # Required for rediss:// (TLS) — Render uses a self-signed cert
-            "CONNECTION_POOL_KWARGS": {"ssl_cert_reqs": "CERT_NONE"},
+            # Required for rediss:// (TLS) on Render — disable cert verification
+            "CONNECTION_POOL_KWARGS": {"ssl_cert_reqs": _ssl.CERT_NONE},
         },
     }
 }
@@ -191,8 +193,8 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 # Required for rediss:// (TLS) on Render
-CELERY_BROKER_USE_SSL = {"ssl_cert_reqs": "CERT_NONE"} if config("CELERY_BROKER_URL", default="").startswith("rediss://") else None
-CELERY_REDIS_BACKEND_USE_SSL = {"ssl_cert_reqs": "CERT_NONE"} if config("CELERY_RESULT_BACKEND", default="").startswith("rediss://") else None
+CELERY_BROKER_USE_SSL = {"ssl_cert_reqs": _ssl.CERT_NONE} if config("CELERY_BROKER_URL", default="").startswith("rediss://") else None
+CELERY_REDIS_BACKEND_USE_SSL = {"ssl_cert_reqs": _ssl.CERT_NONE} if config("CELERY_RESULT_BACKEND", default="").startswith("rediss://") else None
 
 # Celery Beat — periodic tasks
 from celery.schedules import crontab  # noqa: E402
