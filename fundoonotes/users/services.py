@@ -44,7 +44,10 @@ def register_user(validated_data: dict) -> User:
     user.save()
 
     token = generate_verification_token(user.id)
-    send_verification_email.delay(user.email, token)
+    try:
+        send_verification_email.delay(user.email, token)
+    except Exception:
+        send_verification_email(user.email, token)
 
     return user
 
@@ -83,7 +86,11 @@ def initiate_login(username: str, password: str) -> str:
         raise serializers.ValidationError("Account is deactivated.")
 
     otp = generate_login_otp(user.id)
-    send_login_otp_email.delay(user.email, otp)
+    try:
+        send_login_otp_email.delay(user.email, otp)
+    except Exception:
+        # Celery unavailable — send synchronously so login always works
+        send_login_otp_email(user.email, otp)
 
     return user.email
 

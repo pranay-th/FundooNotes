@@ -31,7 +31,8 @@ const STRENGTH_COLORS = ['', 'error', 'warning', 'info', 'success'];
 
 function PasswordStrengthBar({ password }) {
   const strength = getPasswordStrength(password);
-  if (!password) return null;
+  // Don't render until there's something typed, and strength must be ≥1
+  if (!password || strength === 0) return null;
 
   return (
     <Box sx={{ mt: -0.5 }}>
@@ -65,8 +66,8 @@ export default function RegisterForm() {
     formState: { errors, isSubmitting },
   } = useForm({ resolver: yupResolver(registerSchema) });
 
-  // Watch password live for the strength bar
-  const passwordValue = useWatch({ control, name: 'password', defaultValue: '' });
+  // Watch password live for the strength bar — coerce undefined to ''
+  const passwordValue = useWatch({ control, name: 'password', defaultValue: '' }) ?? '';
 
   const onSubmit = async (data) => {
     try {
