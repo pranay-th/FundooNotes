@@ -46,12 +46,12 @@ class Settings:
     SECRET_KEY: str = config("SECRET_KEY")
     JWT_ALGORITHM: str = config("JWT_ALGORITHM", default="HS256")
 
-    # Individual DB connection parameters (kept for reference / Alembic use)
+    # Individual DB connection parameters — optional when DATABASE_URL is set
     DB_HOST: str = config("DB_HOST", default="localhost")
     DB_PORT: int = config("DB_PORT", default=5432, cast=int)
-    DB_NAME: str = config("DB_NAME")
-    DB_USER: str = config("DB_USER")
-    DB_PASSWORD: str = config("DB_PASSWORD")
+    DB_NAME: str = config("DB_NAME", default="")
+    DB_USER: str = config("DB_USER", default="")
+    DB_PASSWORD: str = config("DB_PASSWORD", default="")
 
     # Async SQLAlchemy DSN — used by the engine and Alembic async runner.
     # Falls back to constructing the URL from individual parts if DATABASE_URL
