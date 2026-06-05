@@ -92,6 +92,7 @@ if _DATABASE_URL:
             _DATABASE_URL,
             conn_max_age=600,
             conn_health_checks=True,
+            engine="django.db.backends.postgresql",
         )
     }
 else:
