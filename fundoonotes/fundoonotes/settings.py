@@ -25,7 +25,7 @@ ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv(
 
 # Railway healthcheck and internal routing uses various subdomains
 # Always allow these regardless of the ALLOWED_HOSTS env var
-ALLOWED_HOSTS += [".railway.app", ".up.railway.app"]
+ALLOWED_HOSTS += [".railway.app", ".up.railway.app", ".onrender.com"]
 
 # ---------------------------------------------------------------------------
 # Application definition
