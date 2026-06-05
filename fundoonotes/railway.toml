@@ -7,3 +7,7 @@ startCommand = "gunicorn fundoonotes.wsgi:application --bind 0.0.0.0:$PORT --wor
 healthcheckPath = "/api/schema/"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
+
+[[deploy.envVars]]
+name = "DJANGO_SETTINGS_MODULE"
+value = "fundoonotes.settings"
