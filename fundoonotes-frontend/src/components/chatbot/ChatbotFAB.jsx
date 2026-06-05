@@ -3,11 +3,11 @@ import {
   Avatar,
   Box,
   Chip,
-  CircularProgress,
   Collapse,
   Fab,
   IconButton,
   InputAdornment,
+  LinearProgress,
   Paper,
   Skeleton,
   TextField,
@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { alpha, useTheme as useMuiTheme } from '@mui/material/styles';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
 import CloseIcon from '@mui/icons-material/Close';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
@@ -24,8 +25,9 @@ import PersonIcon from '@mui/icons-material/Person';
 import MicIcon from '@mui/icons-material/Mic';
 import MicOffIcon from '@mui/icons-material/MicOff';
 import TipsAndUpdatesIcon from '@mui/icons-material/TipsAndUpdates';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import { useQueryClient } from '@tanstack/react-query';
-import { sendChatMessage, getChatSuggestions } from '@/api/chatbotApi';
+import { sendChatMessage, getChatSuggestions, analyseFile } from '@/api/chatbotApi';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { SESSION_STORAGE_KEYS } from '@/utils/constants';
 
@@ -96,8 +98,11 @@ export default function ChatbotFAB() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [streamingContent, setStreamingContent] = useState(''); // live token buffer
+  const [streamingContent, setStreamingContent] = useState('');
+  const [fileUploading, setFileUploading] = useState(false);
+  const [pendingFile, setPendingFile] = useState(null); // { name, preview }
   const [error, setError] = useState(null);
+  const fileInputRef = useRef(null);
 
   const [history, setHistory] = useState(() =>
     loadFromSession(SESSION_STORAGE_KEYS.CHAT_HISTORY, []),
@@ -223,6 +228,31 @@ export default function ChatbotFAB() {
     suggestionsLoaded.current = true;
   };
 
+  // ── File upload ──────────────────────────────────────────────────────────
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!fileInputRef.current) return;
+    fileInputRef.current.value = '';
+    if (!file) return;
+
+    setFileUploading(true);
+    setError(null);
+    setPendingFile({ name: file.name });
+
+    try {
+      const result = await analyseFile(file);
+      // Inject the result as a user message so the AI can act on it
+      const msg = `I uploaded a file called "${result.filename}". Here are the extracted key points:\n\n${result.extracted_content}\n\nPlease create a note titled "${result.suggested_title}" with this content.`;
+      setPendingFile(null);
+      _send(msg, false);
+    } catch (err) {
+      setPendingFile(null);
+      setError(err?.response?.data?.error ?? err.message ?? 'File analysis failed');
+    } finally {
+      setFileUploading(false);
+    }
+  };
+
   const handleMicClick = () => {
     if (listening) { stopListening(); }
     else { setInput(''); resetTranscript(); startListening(); }
@@ -237,6 +267,15 @@ export default function ChatbotFAB() {
 
   return (
     <>
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,.txt,.md"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+        aria-hidden="true"
+      />
       {/* ── FAB with gradient glow ─────────────────────────────────────── */}
       <Tooltip title="AI Assistant" placement="left">
         <Fab
@@ -542,6 +581,30 @@ export default function ChatbotFAB() {
             </Box>
           </Collapse>
 
+          {/* ── File upload progress banner ─────────────────────── */}
+          {(fileUploading || pendingFile) && (
+            <Box
+              sx={{
+                px: 2,
+                py: 0.875,
+                background: 'linear-gradient(90deg, #1a73e8 0%, #7c3aed 100%)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                flexShrink: 0,
+              }}
+            >
+              <InsertDriveFileIcon sx={{ fontSize: 16 }} />
+              <Typography variant="caption" flex={1} fontWeight={500}>
+                {fileUploading
+                  ? `Analysing ${pendingFile?.name ?? 'file'}…`
+                  : `Processing ${pendingFile?.name ?? 'file'}…`}
+              </Typography>
+            </Box>
+          )}
+          {fileUploading && <LinearProgress sx={{ flexShrink: 0 }} />}
+
           {/* ── Input ───────────────────────────────────────────────── */}
           <Box
             sx={{
@@ -581,6 +644,24 @@ export default function ChatbotFAB() {
                 </IconButton>
               </Tooltip>
             )}
+
+            <Tooltip title="Attach image or text file">
+              <IconButton
+                size="small"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading || fileUploading || listening}
+                sx={{
+                  mb: 0.25,
+                  color: 'text.secondary',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  '&:hover': { bgcolor: 'action.hover' },
+                }}
+                aria-label="Attach file for AI analysis"
+              >
+                <AttachFileIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Tooltip>
 
             <TextField
               inputRef={inputRef}

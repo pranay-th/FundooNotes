@@ -35,11 +35,14 @@ MAX_TOOL_ITERATIONS = 10
 BASE_SYSTEM_PROMPT = (
     "You are a helpful AI assistant embedded in FundooNotes, a note-taking app. "
     "You have access to tools that let you CREATE, READ, UPDATE, and DELETE the "
-    "user's notes and labels — USE THEM when the user asks you to do something. "
-    "Do not describe what you are going to do; just call the tool and then report "
-    "the result concisely. "
+    "user's notes and labels, set reminders, synthesise multiple notes into one, "
+    "organise notes by topic, and list notes shared with the user. "
+    "USE THE TOOLS when the user asks you to do something. "
+    "Do not describe what you are going to do; just call the tool and report the result concisely. "
+    "When setting reminders, always confirm the exact date and time back to the user. "
     "The user's current notes are listed below for reference.\n\n"
     "{notes_context}"
+    "{shared_context}"
 )
 
 
@@ -55,15 +58,46 @@ def _build_system_prompt(user) -> str:
         for n in notes:
             title   = (n.title   or "Untitled").strip()
             content = (n.content or "").strip()[:300]
-            entry   = f"- [id={n.pk}] [{title}]"
+            reminder = f" [reminder: {n.reminder_at.isoformat()}]" if n.reminder_at else ""
+            entry   = f"- [id={n.pk}] [{title}]{reminder}"
             if content:
                 entry += f": {content}"
             lines.append(entry)
-        notes_context = "User's notes (include id when calling update/delete tools):\n" + "\n".join(lines)
+        notes_context = "User's own notes (include id when calling update/delete/reminder tools):\n" + "\n".join(lines)
     else:
         notes_context = "The user has no notes yet."
 
-    return BASE_SYSTEM_PROMPT.format(notes_context=notes_context)
+    # Also inject shared notes so the AI can answer questions about them
+    try:
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT n.id, n.title, n.content, nc.access_level
+                FROM note_collaborators nc
+                JOIN notes n ON nc.note_id = n.id
+                WHERE nc.collaborator_id = %s AND n.is_trashed = false
+                ORDER BY nc.created_at DESC
+                LIMIT 10
+                """,
+                [user.id],
+            )
+            shared_rows = cursor.fetchall()
+        if shared_rows:
+            shared_lines = [
+                f"- [shared-id={row[0]}] [{row[1] or 'Untitled'}] ({row[3]}): {(row[2] or '')[:200]}"
+                for row in shared_rows
+            ]
+            shared_context = "\n\nNotes shared with the user by others:\n" + "\n".join(shared_lines)
+        else:
+            shared_context = ""
+    except Exception:
+        shared_context = ""
+
+    return BASE_SYSTEM_PROMPT.format(
+        notes_context=notes_context,
+        shared_context=shared_context,
+    )
 
 
 def _call_openrouter(messages: list, stream: bool = False, tools=None) -> requests.Response:
@@ -242,29 +276,165 @@ def chat(request):
     return response
 
 
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def analyse_file(request):
+    """
+    POST /api/chatbot/analyse-file/
+    Accepts a multipart upload with a file (image or text-based document).
+    Returns extracted key points as a suggested note.
+
+    Supports: images (jpg, png, gif, webp) via vision API
+              text files (txt, md) via direct content extraction
+    """
+    import base64
+    import mimetypes
+
+    uploaded = request.FILES.get("file")
+    instruction = request.data.get("instruction", "Extract the key points from this file and format them as a concise note.")
+
+    if not uploaded:
+        return Response({"error": "file is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    max_size = 10 * 1024 * 1024  # 10 MB
+    if uploaded.size > max_size:
+        return Response({"error": "File too large (max 10 MB)"}, status=status.HTTP_400_BAD_REQUEST)
+
+    mime_type, _ = mimetypes.guess_type(uploaded.name)
+    mime_type = mime_type or "application/octet-stream"
+    is_image = mime_type.startswith("image/")
+    is_text = mime_type in ("text/plain", "text/markdown") or uploaded.name.endswith((".txt", ".md"))
+
+    if not is_image and not is_text:
+        return Response(
+            {"error": f"Unsupported file type '{mime_type}'. Supported: images (jpg/png/gif/webp) and text files (txt/md)"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        if is_image:
+            raw_bytes = uploaded.read()
+            b64 = base64.b64encode(raw_bytes).decode("utf-8")
+            data_url = f"data:{mime_type};base64,{b64}"
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": instruction},
+                        {"type": "image_url", "image_url": {"url": data_url}},
+                    ],
+                }
+            ]
+            model = "openai/gpt-4o-mini"
+        else:
+            # Plain text file
+            content = uploaded.read().decode("utf-8", errors="replace")[:8000]
+            messages = [
+                {"role": "system", "content": "You extract key points from documents and format them as concise notes."},
+                {"role": "user", "content": f"{instruction}\n\nDocument content:\n{content}"},
+            ]
+            model = MODEL
+
+        resp = requests.post(
+            OPENROUTER_CHAT_URL,
+            json={"model": model, "messages": messages},
+            headers=headers,
+            timeout=60,
+        )
+        resp.raise_for_status()
+        extracted = resp.json()["choices"][0]["message"]["content"]
+
+    except requests.exceptions.RequestException as exc:
+        return Response(
+            {"error": f"AI service error: {str(exc)}"},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    # Suggest a title from the filename
+    suggested_title = uploaded.name.rsplit(".", 1)[0].replace("_", " ").replace("-", " ").title()
+
+    return Response(
+        {
+            "payload": {
+                "suggested_title": suggested_title,
+                "extracted_content": extracted,
+                "filename": uploaded.name,
+            }
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def suggestions(request):
     """
     GET /api/chatbot/suggestions/
-    Returns 3 proactive suggestions based on the user's most recent notes.
+    Returns 3 smarter proactive suggestions based on pattern analysis of notes:
+    - Stale notes that haven't been updated in a while
+    - Notes with incomplete/todo language
+    - Recurring topics across multiple notes
     """
-    recent_notes = Note.objects.filter(
-        created_by=request.user, is_trashed=False
-    ).order_by("-updated_at")[:5]
+    from django.utils import timezone
 
-    notes_text = "\n".join(
-        f"- {n.title}: {(n.content or '')[:200]}" for n in recent_notes
-    )
+    all_notes = Note.objects.filter(
+        created_by=request.user, is_trashed=False
+    ).order_by("-updated_at")[:30]
+
+    if not all_notes:
+        return Response(
+            {"payload": {"suggestions": [
+                "Create your first note to get started",
+                "Try asking me to organise your notes by topic",
+                "You can set reminders on notes — just ask me",
+            ]}},
+            status=status.HTTP_200_OK,
+        )
+
+    now = timezone.now()
+    notes_text_parts = []
+    stale_count = 0
+    todo_count = 0
+
+    for n in all_notes:
+        age_days = (now - n.updated_at).days
+        if age_days > 7:
+            stale_count += 1
+        content_lower = (n.content or "").lower()
+        if any(kw in content_lower for kw in ["todo", "to-do", "[ ]", "- [ ]", "need to", "must", "should"]):
+            todo_count += 1
+        notes_text_parts.append(
+            f"- [id={n.pk}, age={age_days}d] {n.title or 'Untitled'}: {(n.content or '')[:150]}"
+        )
+
+    notes_text = "\n".join(notes_text_parts)
+
+    context_hints = []
+    if stale_count > 3:
+        context_hints.append(f"{stale_count} notes haven't been updated in over a week")
+    if todo_count > 0:
+        context_hints.append(f"{todo_count} notes contain todo/task language")
+    if len(all_notes) > 10:
+        context_hints.append("the user has many notes that could benefit from organisation")
+
+    hints_text = (" Context: " + "; ".join(context_hints) + ".") if context_hints else ""
 
     prompt = (
-        "Based on these recent notes, give exactly 3 short, actionable suggestions "
-        "(one sentence each) to help the user. Return them as a JSON array of strings. "
-        f"Notes:\n{notes_text or 'No notes yet.'}"
+        f"You are an AI assistant for a note-taking app.{hints_text} "
+        "Based on the user's notes below, generate exactly 3 short, specific, actionable suggestions "
+        "(one sentence each) to help them. Focus on: stale notes that need updating, incomplete tasks, "
+        "or topics that could be synthesised or organised. "
+        "Return them as a JSON array of strings.\n\n"
+        f"Notes:\n{notes_text}"
     )
 
     messages = [
-        {"role": "system", "content": _build_system_prompt(request.user)},
+        {"role": "system", "content": "You are a helpful assistant. Always respond with a valid JSON array of 3 strings, no markdown."},
         {"role": "user", "content": prompt},
     ]
 
@@ -276,7 +446,7 @@ def suggestions(request):
     try:
         resp = requests.post(
             OPENROUTER_CHAT_URL,
-            json={"model": MODEL, "messages": messages},
+            json={"model": MODEL, "messages": messages, "response_format": {"type": "json_object"}},
             headers=headers,
             timeout=30,
         )
@@ -289,12 +459,20 @@ def suggestions(request):
         )
 
     try:
-        suggestion_list = json.loads(reply)
-        if not isinstance(suggestion_list, list):
+        parsed = json.loads(reply)
+        if isinstance(parsed, dict):
+            suggestion_list = next(
+                (v for v in parsed.values() if isinstance(v, list)), []
+            )
+        elif isinstance(parsed, list):
+            suggestion_list = parsed
+        else:
+            raise ValueError
+        if not suggestion_list:
             raise ValueError
     except (json.JSONDecodeError, ValueError):
         suggestion_list = [
-            line.strip("- ").strip()
+            line.strip("- \"").strip()
             for line in reply.splitlines()
             if line.strip()
         ][:3]

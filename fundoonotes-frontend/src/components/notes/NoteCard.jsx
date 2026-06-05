@@ -11,6 +11,7 @@ import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined';
 import UnarchiveOutlinedIcon from '@mui/icons-material/UnarchiveOutlined';
+import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined';
 import { useTheme as useMuiTheme } from '@mui/material/styles';
 import { NOTE_COLORS } from '@/theme/colors';
 
@@ -147,6 +148,17 @@ export default function NoteCard({
                 : 'rgba(26,115,232,0.2)',
             }}
           />
+        )}
+
+        {note.reminder_at && (
+          <Box display="flex" alignItems="center" gap={0.5} mt={0.75}>
+            <NotificationsActiveOutlinedIcon sx={{ fontSize: 13, color: 'warning.main' }} />
+            <Typography variant="caption" color="warning.main" sx={{ fontSize: 11 }}>
+              {new Date(note.reminder_at).toLocaleString(undefined, {
+                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+              })}
+            </Typography>
+          </Box>
         )}
       </CardContent>
 

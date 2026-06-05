@@ -129,3 +129,48 @@ def send_login_otp_email(self, email: str, otp: str) -> None:
             f"(attempt {self.request.retries + 1}/{self.max_retries + 1}): {exc}"
         )
         raise self.retry(exc=exc)
+
+
+@shared_task
+def dispatch_due_reminders() -> None:
+    """
+    Periodic task — runs every minute via Celery Beat.
+    Finds all notes whose reminder_at is due (within the last minute) and
+    not yet trashed, sends a reminder email to the note owner, then clears
+    the reminder_at field so it doesn't fire again.
+    """
+    from django.utils import timezone
+    from notes.models import Note
+
+    now = timezone.now()
+    window_start = now - timezone.timedelta(minutes=1)
+
+    due_notes = Note.objects.filter(
+        reminder_at__gte=window_start,
+        reminder_at__lte=now,
+        is_trashed=False,
+    ).select_related("created_by")
+
+    for note in due_notes:
+        user = note.created_by
+        try:
+            send_mail(
+                subject=f"Reminder: {note.title or 'Your note'}",
+                message=(
+                    f"Hi {user.username},\n\n"
+                    f"This is your reminder for the note:\n\n"
+                    f"  \"{note.title or 'Untitled'}\"\n\n"
+                    f"{note.content[:500] if note.content else ''}\n\n"
+                    f"Open FundooNotes to view it in full."
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=True,
+            )
+            logger.info(f"Reminder sent to {user.email} for note {note.id}")
+        except Exception as exc:
+            logger.error(f"Failed to send reminder for note {note.id}: {exc}")
+
+        # Clear the reminder so it doesn't fire again
+        note.reminder_at = None
+        note.save(update_fields=["reminder_at"])
