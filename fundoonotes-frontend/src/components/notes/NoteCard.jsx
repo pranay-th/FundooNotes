@@ -39,19 +39,24 @@ export default function NoteCard({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       sx={{
-        bgcolor: bgColor ?? 'background.paper',
+        bgcolor: bgColor
+          ? (isDark ? `${bgColor}cc` : `${bgColor}dd`)
+          : (isDark ? 'rgba(30, 30, 30, 0.72)' : 'rgba(255, 255, 255, 0.72)'),
+        backdropFilter: 'blur(12px) saturate(160%)',
         cursor: 'pointer',
         mb: 2,
         borderRadius: 3,
         border: '1px solid',
         borderColor: hovered
-          ? (isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.18)')
-          : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'),
+          ? (isDark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.22)')
+          : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.6)'),
         boxShadow: hovered
           ? (isDark
-              ? '0 4px 20px rgba(0,0,0,0.4), 0 1px 4px rgba(0,0,0,0.2)'
-              : '0 4px 20px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06)')
-          : '0 1px 3px rgba(0,0,0,0.04)',
+              ? '0 8px 32px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3)'
+              : '0 8px 32px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.06)')
+          : (isDark
+              ? '0 2px 8px rgba(0,0,0,0.3)'
+              : '0 2px 8px rgba(0,0,0,0.06)'),
         transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
         transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease',
         position: 'relative',

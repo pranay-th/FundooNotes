@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import { useSharedNotes, useUpdateNoteContent } from '@/hooks/useCollab';
 import NotesGrid from '@/components/notes/NotesGrid';
 import NoteEditor from '@/components/notes/NoteEditor';
+import GradientText from '@/components/ui/GradientText';
 
 function sharedToNote(sn) {
   return {
@@ -59,7 +59,9 @@ export default function SharedNotesPage() {
 
   return (
     <Box>
-      <Typography variant="h6" mb={2} fontWeight={500}>Shared with me</Typography>
+      <GradientText variant="h6" duration={0.6} sx={{ mb: 2, fontSize: 15, fontWeight: 600, letterSpacing: 0 }}>
+        Shared with me
+      </GradientText>
       {saveError && <Alert severity="error" sx={{ mb: 2 }}>{saveError}</Alert>}
       {isNetworkError && (
         <Alert

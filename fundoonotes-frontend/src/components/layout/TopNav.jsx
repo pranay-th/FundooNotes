@@ -23,6 +23,7 @@ import { useAuth } from '@/context/AuthContext';
 import * as authApi from '@/api/authApi';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/utils/constants';
+import GradientText from '@/components/ui/GradientText';
 
 export default function TopNav({ onMenuClick, searchQuery, onSearchChange, onSearchClear }) {
   const { mode, toggleTheme } = useTheme();
@@ -44,7 +45,24 @@ export default function TopNav({ onMenuClick, searchQuery, onSearchChange, onSea
   };
 
   return (
-    <AppBar position="static" elevation={0} sx={{ height: 64, color: 'text.primary' }}>
+    <AppBar
+      position="static"
+      elevation={0}
+      sx={{
+        height: 64,
+        color: 'text.primary',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        bgcolor: (theme) =>
+          theme.palette.mode === 'dark'
+            ? 'rgba(18, 18, 18, 0.8)'
+            : 'rgba(255, 255, 255, 0.75)',
+        borderBottom: '1px solid',
+        borderColor: (theme) =>
+          theme.palette.mode === 'dark'
+            ? 'rgba(255,255,255,0.08)'
+            : 'rgba(0,0,0,0.08)',
+      }}
+    >
       <Toolbar sx={{ gap: 1, minHeight: '64px !important', px: { xs: 1, sm: 2 } }}>
 
         {/* Hamburger */}
@@ -69,23 +87,17 @@ export default function TopNav({ onMenuClick, searchQuery, onSearchChange, onSea
           >
             <Typography sx={{ color: '#fff', fontSize: 16, fontWeight: 700, lineHeight: 1 }}>F</Typography>
           </Box>
-          <Typography
+          <GradientText
             variant="h6"
+            duration={0.6}
             sx={{
-              fontWeight: 600,
               fontSize: 20,
-              background: isDark
-                ? 'linear-gradient(135deg, #8ab4f8 0%, #c084fc 100%)'
-                : 'linear-gradient(135deg, #1a73e8 0%, #7c3aed 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              display: { xs: 'none', sm: 'block' },
+              display: { xs: 'none', sm: 'inline-block' },
               letterSpacing: '-0.5px',
             }}
           >
             FundooNotes
-          </Typography>
+          </GradientText>
         </Box>
 
         {/* Search bar */}

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { UIProvider } from '@/context/UIContext';
+import { ToastProvider } from '@/context/ToastContext';
 import { attachInterceptors } from '@/api/interceptors';
 import { LOCAL_STORAGE_KEYS } from '@/utils/constants';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
@@ -49,6 +50,7 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <UIProvider>
+            <ToastProvider>
             <BrowserRouter>
               <InterceptorSetup />
               <Routes>
@@ -74,6 +76,7 @@ export default function App() {
                 <Route path="*" element={<Navigate to="/app/notes" replace />} />
               </Routes>
             </BrowserRouter>
+            </ToastProvider>
           </UIProvider>
         </AuthProvider>
       </ThemeProvider>

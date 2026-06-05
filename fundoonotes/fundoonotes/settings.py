@@ -7,6 +7,7 @@ via python-decouple. Never hardcode secrets here.
 from pathlib import Path
 from datetime import timedelta
 
+import dj_database_url
 from decouple import config, Csv
 from loguru import logger
 
@@ -43,6 +44,7 @@ INSTALLED_APPS = [
     "notes",
     "labels",
     "common",
+    "chatbot",
 ]
 
 MIDDLEWARE = [
@@ -79,18 +81,30 @@ TEMPLATES = [
 WSGI_APPLICATION = "fundoonotes.wsgi.application"
 
 # ---------------------------------------------------------------------------
-# Database — PostgreSQL (env-driven)
+# Database
 # ---------------------------------------------------------------------------
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": config("DB_NAME"),
-        "USER": config("DB_USER"),
-        "PASSWORD": config("DB_PASSWORD"),
-        "HOST": config("DB_HOST", default="localhost"),
-        "PORT": config("DB_PORT", default="5432"),
+# DATABASE_URL takes priority (set this in production / Railway).
+# Falls back to individual DB_* variables for local development.
+_DATABASE_URL = config("DATABASE_URL", default="")
+if _DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.parse(
+            _DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": config("DB_NAME"),
+            "USER": config("DB_USER"),
+            "PASSWORD": config("DB_PASSWORD"),
+            "HOST": config("DB_HOST", default="localhost"),
+            "PORT": config("DB_PORT", default="5432"),
+        }
+    }
 
 # ---------------------------------------------------------------------------
 # Cache — Redis via django-redis
@@ -208,6 +222,7 @@ USE_TZ = True
 # Static files
 # ---------------------------------------------------------------------------
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # ---------------------------------------------------------------------------
 # Loguru — structured file logging

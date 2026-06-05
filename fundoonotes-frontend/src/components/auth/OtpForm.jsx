@@ -11,10 +11,12 @@ import * as authApi from '@/api/authApi';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/utils/constants';
+import { useToast } from '@/context/ToastContext';
 
 export default function OtpForm({ email }) {
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [readyToNavigate, setReadyToNavigate] = useState(false);
 
   const {
@@ -47,6 +49,7 @@ export default function OtpForm({ email }) {
       authApi.getProfileWithToken(tokens.access)
         .then((user) => login(tokens, user))
         .catch(() => { /* non-critical — minimal user is sufficient */ });
+      toast.success('Welcome to FundooNotes!');
       setReadyToNavigate(true);
     } catch (err) {
       console.error('OTP submit error:', err);
@@ -57,6 +60,7 @@ export default function OtpForm({ email }) {
         errData?.message ??
         'Invalid or expired OTP';
       setError('otp', { message: msg });
+      toast.error(msg);
     }
   };
 

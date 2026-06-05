@@ -11,6 +11,7 @@ engine = create_async_engine(
     settings.DATABASE_URL,
     echo=False,          # set to True for SQL query logging during development
     future=True,
+    connect_args=settings.DB_CONNECT_ARGS,
 )
 
 # ---------------------------------------------------------------------------

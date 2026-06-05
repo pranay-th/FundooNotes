@@ -89,6 +89,7 @@ async def run_migrations_online() -> None:
     connectable = create_async_engine(
         settings.DATABASE_URL,
         poolclass=pool.NullPool,  # no connection pooling during migrations
+        connect_args=settings.DB_CONNECT_ARGS,
     )
 
     async with connectable.connect() as connection:

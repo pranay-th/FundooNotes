@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
 import { useNotes, useUpdateNote } from '@/hooks/useNotes';
 import NotesGrid from '@/components/notes/NotesGrid';
 import NoteEditor from '@/components/notes/NoteEditor';
+import GradientText from '@/components/ui/GradientText';
 
 export default function ArchivePage() {
   const { data: notes = [], isLoading, isError, refetch } = useNotes();
@@ -19,7 +19,9 @@ export default function ArchivePage() {
 
   return (
     <Box>
-      <Typography variant="h6" mb={2}>Archive</Typography>
+      <GradientText variant="h6" duration={0.6} sx={{ mb: 2, fontSize: 15, fontWeight: 600, letterSpacing: 0 }}>
+        Archive
+      </GradientText>
       <NotesGrid
         notes={archived}
         isLoading={isLoading}

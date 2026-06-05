@@ -9,6 +9,7 @@ import { useUI } from '@/context/UIContext';
 import { useLabels } from '@/hooks/useLabels';
 import { ROUTES } from '@/utils/constants';
 import ChatbotFAB from '@/components/chatbot/ChatbotFAB';
+import DitheredBackground from '@/components/ui/DitheredBackground';
 
 const SIDEBAR_EXPANDED = 240;
 const SIDEBAR_COLLAPSED = 64;
@@ -49,7 +50,8 @@ export default function AppLayout() {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <DitheredBackground>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* Fixed top nav */}
       <Box sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1200 }}>
         <TopNav
@@ -72,7 +74,16 @@ export default function AppLayout() {
             width: sidebarWidth,
             transition: 'width 0.2s ease',
             zIndex: 1100,
-            bgcolor: 'background.default',
+            backdropFilter: 'blur(16px) saturate(180%)',
+            bgcolor: (theme) =>
+              theme.palette.mode === 'dark'
+                ? 'rgba(18, 18, 18, 0.75)'
+                : 'rgba(255, 255, 255, 0.7)',
+            borderRight: '1px solid',
+            borderColor: (theme) =>
+              theme.palette.mode === 'dark'
+                ? 'rgba(255,255,255,0.08)'
+                : 'rgba(0,0,0,0.08)',
             overflowX: 'hidden',
           }}
         >
@@ -105,5 +116,6 @@ export default function AppLayout() {
       {/* AI chatbot floating action button — available on all protected pages */}
       <ChatbotFAB />
     </Box>
+    </DitheredBackground>
   );
 }

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
 import { useParams } from 'react-router-dom';
 import { useNotes, useUpdateNote, useDeleteNote } from '@/hooks/useNotes';
 import { useLabels } from '@/hooks/useLabels';
 import NotesGrid from '@/components/notes/NotesGrid';
 import NoteEditor from '@/components/notes/NoteEditor';
+import GradientText from '@/components/ui/GradientText';
 
 export default function LabelPage() {
   const { labelId } = useParams();
@@ -24,9 +24,9 @@ export default function LabelPage() {
 
   return (
     <Box>
-      <Typography variant="h6" mb={2}>
+      <GradientText variant="h6" duration={0.6} sx={{ mb: 2, fontSize: 15, fontWeight: 600, letterSpacing: 0 }}>
         {label?.title ?? 'Label'}
-      </Typography>
+      </GradientText>
       <NotesGrid
         notes={filtered}
         isLoading={isLoading}

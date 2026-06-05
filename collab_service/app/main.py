@@ -22,6 +22,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
+from decouple import config, Csv
 
 from app.database import engine
 from app.routers import collaborators, health, note_access, shared_notes
@@ -68,12 +69,17 @@ app = FastAPI(
 
 
 # ---------------------------------------------------------------------------
-# CORS — allow the React dev server
+# CORS — env-driven, defaults to localhost dev servers
 # ---------------------------------------------------------------------------
+_cors_origins = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:5173,http://127.0.0.1:5173",
+    cast=Csv(),
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=list(_cors_origins),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

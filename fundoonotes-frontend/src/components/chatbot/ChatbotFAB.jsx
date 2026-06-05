@@ -96,6 +96,7 @@ export default function ChatbotFAB() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [streamingContent, setStreamingContent] = useState(''); // live token buffer
   const [error, setError] = useState(null);
 
   const [history, setHistory] = useState(() =>
@@ -164,22 +165,38 @@ export default function ChatbotFAB() {
     setInput('');
     setError(null);
     setSuggestions([]);
+    setStreamingContent('');
 
     const optimistic = { role: 'user', content: text, fromVoice, timestamp: Date.now() };
     setDisplayMessages((prev) => [...prev, optimistic]);
     setLoading(true);
 
-    try {
-      const result = await sendChatMessage(text, history);
-      setHistory(result.history);
-      setDisplayMessages(toDisplayMessages(result.history));
+    let fullReply = '';
 
-      // Invalidate all React Query caches so the UI reflects changes
+    try {
+      fullReply = await sendChatMessage(text, history, (token) => {
+        // Each token arrives here — append to live streaming buffer
+        fullReply += token; // local accumulator (sendChatMessage also tracks it)
+        setStreamingContent((prev) => prev + token);
+      });
+
+      // Streaming done — commit the full reply to the real message list
+      const updatedHistory = [
+        ...history,
+        { role: 'user', content: text },
+        { role: 'assistant', content: fullReply },
+      ];
+      setHistory(updatedHistory);
+      setDisplayMessages(toDisplayMessages(updatedHistory));
+      setStreamingContent('');
+
+      // Invalidate React Query caches so the UI reflects any changes
       void qc.invalidateQueries({ queryKey: ['notes'] });
       void qc.invalidateQueries({ queryKey: ['labels'] });
       void qc.invalidateQueries({ queryKey: ['shared-notes'] });
       void qc.invalidateQueries({ predicate: (q) => q.queryKey[0] === 'collaborators' });
     } catch (err) {
+      setStreamingContent('');
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       setDisplayMessages((prev) => prev.slice(0, -1));
     } finally {
@@ -438,9 +455,37 @@ export default function ChatbotFAB() {
                     bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
                     border: '1px solid',
                     borderColor: 'divider',
+                    maxWidth: '78%',
                   }}
                 >
-                  <ThinkingDots />
+                  {streamingContent ? (
+                    // Tokens are arriving — render them live with a blinking cursor
+                    <Typography
+                      variant="body2"
+                      sx={{ lineHeight: 1.55, fontSize: '0.855rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                    >
+                      {streamingContent}
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'inline-block',
+                          width: '2px',
+                          height: '1em',
+                          bgcolor: 'primary.main',
+                          ml: '2px',
+                          verticalAlign: 'text-bottom',
+                          '@keyframes blink': {
+                            '0%, 100%': { opacity: 1 },
+                            '50%': { opacity: 0 },
+                          },
+                          animation: 'blink 0.8s ease-in-out infinite',
+                        }}
+                      />
+                    </Typography>
+                  ) : (
+                    // Waiting for first token — show the animated dots
+                    <ThinkingDots />
+                  )}
                 </Paper>
               </Box>
             )}

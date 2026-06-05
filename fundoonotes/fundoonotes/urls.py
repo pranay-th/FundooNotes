@@ -24,6 +24,9 @@ urlpatterns = [
     # Stats
     path("api/stats/requests/", request_stats, name="request-stats"),
 
+    # Chatbot app
+    path("api/chatbot/", include("chatbot.urls")),
+
     # API schema and docs (drf-spectacular) — publicly accessible
     path("api/schema/", SpectacularAPIView.as_view(permission_classes=[AllowAny]), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema", permission_classes=[AllowAny]), name="swagger-ui"),

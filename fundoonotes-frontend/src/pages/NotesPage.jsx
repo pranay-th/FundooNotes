@@ -19,6 +19,7 @@ import NoteEditor from '@/components/notes/NoteEditor';
 import NoteColorPicker from '@/components/notes/NoteColorPicker';
 import LabelPicker from '@/components/notes/LabelPicker';
 import CollaboratorPanel from '@/components/notes/CollaboratorPanel';
+import GradientText from '@/components/ui/GradientText';
 
 // ── Collaborator dialog wrapper ───────────────────────────────────────────────
 function CollaboratorDialog({ note, onClose }) {
@@ -102,6 +103,13 @@ export default function NotesPage() {
 
   return (
     <Box>
+      {/* ── Section heading ── */}
+      <Box sx={{ maxWidth: 600, mx: 'auto', mb: 2, px: 0.5 }}>
+        <GradientText variant="h6" duration={0.6} sx={{ fontSize: 15, fontWeight: 600, letterSpacing: 0 }}>
+          My Notes
+        </GradientText>
+      </Box>
+
       {/* ── Inline note creator ── */}
       <Box sx={{ maxWidth: 600, mx: 'auto', mb: 4 }}>
         <Paper
@@ -111,10 +119,17 @@ export default function NotesPage() {
             borderRadius: 3,
             overflow: 'hidden',
             border: '1px solid',
-            borderColor: expanded ? 'primary.main' : 'divider',
+            borderColor: (theme) => expanded
+              ? 'primary.main'
+              : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.7)'),
             boxShadow: expanded
-              ? '0 4px 24px rgba(26,115,232,0.12)'
-              : '0 1px 4px rgba(0,0,0,0.04)',
+              ? '0 4px 24px rgba(26,115,232,0.2)'
+              : '0 2px 8px rgba(0,0,0,0.08)',
+            backdropFilter: 'blur(16px) saturate(160%)',
+            bgcolor: (theme) =>
+              theme.palette.mode === 'dark'
+                ? 'rgba(30,30,30,0.72)'
+                : 'rgba(255,255,255,0.72)',
             transition: 'border-color 0.2s, box-shadow 0.2s',
           }}
         >
