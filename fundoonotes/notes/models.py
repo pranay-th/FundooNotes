@@ -22,6 +22,7 @@ class Note(models.Model):
     color       = models.CharField(max_length=20, choices=COLOR_CHOICES, default="default")
     is_archived = models.BooleanField(default=False)
     is_trashed  = models.BooleanField(default=False)
+    reminder_at = models.DateTimeField(null=True, blank=True)
     created_at  = models.DateTimeField(auto_now_add=True)
     updated_at  = models.DateTimeField(auto_now=True)
     created_by  = models.ForeignKey(

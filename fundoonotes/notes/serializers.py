@@ -30,7 +30,7 @@ class NoteSerializer(serializers.ModelSerializer):
         model = Note
         fields = [
             "id", "title", "content", "color",
-            "is_archived", "is_trashed",
+            "is_archived", "is_trashed", "reminder_at",
             "labels", "label_ids",
             "created_at", "updated_at",
         ]

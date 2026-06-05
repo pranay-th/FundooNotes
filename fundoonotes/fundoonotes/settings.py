@@ -194,6 +194,15 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_BROKER_USE_SSL = {"ssl_cert_reqs": None} if config("CELERY_BROKER_URL", default="").startswith("rediss://") else None
 CELERY_REDIS_BACKEND_USE_SSL = {"ssl_cert_reqs": None} if config("CELERY_RESULT_BACKEND", default="").startswith("rediss://") else None
 
+# Celery Beat — periodic tasks
+from celery.schedules import crontab  # noqa: E402
+CELERY_BEAT_SCHEDULE = {
+    "dispatch-due-reminders": {
+        "task": "common.tasks.dispatch_due_reminders",
+        "schedule": 60.0,  # every 60 seconds
+    },
+}
+
 # ---------------------------------------------------------------------------
 # Email
 # ---------------------------------------------------------------------------
