@@ -120,8 +120,8 @@ CACHES = {
         "LOCATION": config("REDIS_URL", default="redis://localhost:6379/1"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            # Required for rediss:// (TLS) on Render — their cert is self-signed
-            "CONNECTION_POOL_KWARGS": {"ssl_cert_reqs": None},
+            # Required for rediss:// (TLS) — Render uses a self-signed cert
+            "CONNECTION_POOL_KWARGS": {"ssl_cert_reqs": "CERT_NONE"},
         },
     }
 }
@@ -191,8 +191,8 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 # Required for rediss:// (TLS) on Render
-CELERY_BROKER_USE_SSL = {"ssl_cert_reqs": None} if config("CELERY_BROKER_URL", default="").startswith("rediss://") else None
-CELERY_REDIS_BACKEND_USE_SSL = {"ssl_cert_reqs": None} if config("CELERY_RESULT_BACKEND", default="").startswith("rediss://") else None
+CELERY_BROKER_USE_SSL = {"ssl_cert_reqs": "CERT_NONE"} if config("CELERY_BROKER_URL", default="").startswith("rediss://") else None
+CELERY_REDIS_BACKEND_USE_SSL = {"ssl_cert_reqs": "CERT_NONE"} if config("CELERY_RESULT_BACKEND", default="").startswith("rediss://") else None
 
 # Celery Beat — periodic tasks
 from celery.schedules import crontab  # noqa: E402
