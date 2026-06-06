@@ -7,6 +7,7 @@ domain operations: registration, login, password reset, and email verification.
 
 from django.contrib.auth import authenticate
 from django.core.cache import cache
+from loguru import logger
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -44,8 +45,18 @@ def register_user(validated_data: dict) -> User:
     user.save()
 
     token = generate_verification_token(user.id)
-    # Send synchronously — no Celery worker needed on free tier
-    send_verification_email(user.email, token)
+    # Retry once after 2s in case of cold-start network hiccup on Render free tier
+    import time
+    for attempt in range(2):
+        try:
+            send_verification_email(user.email, token)
+            break
+        except Exception as exc:
+            if attempt == 0:
+                time.sleep(2)
+            else:
+                logger.error(f"Failed to send verification email after retry: {exc}")
+                raise
     return user
 
 
@@ -83,8 +94,17 @@ def initiate_login(username: str, password: str) -> str:
         raise serializers.ValidationError("Account is deactivated.")
 
     otp = generate_login_otp(user.id)
-    # Send synchronously — no Celery worker needed on free tier
-    send_login_otp_email(user.email, otp)
+    import time
+    for attempt in range(2):
+        try:
+            send_login_otp_email(user.email, otp)
+            break
+        except Exception as exc:
+            if attempt == 0:
+                time.sleep(2)
+            else:
+                logger.error(f"Failed to send OTP email after retry: {exc}")
+                raise
     return user.email
 
 
