@@ -13,12 +13,24 @@ import hmac
 CRON_SECRET = config("CRON_SECRET", default="")
 
 
+def _get_secret_header(request) -> str:
+    """
+    Read X-Cron-Secret from the request.
+    Django normalises headers to HTTP_X_CRON_SECRET in META,
+    but also exposes them via request.headers (case-insensitive).
+    """
+    # request.headers is case-insensitive in Django 2.2+
+    return request.headers.get("X-Cron-Secret", "")
+
+
 def _is_authorized(request) -> bool:
-    """Check the X-Cron-Secret header matches the configured secret."""
     if not CRON_SECRET:
+        # No secret configured — deny all to avoid accidental open access
         return False
-    incoming = request.headers.get("X-Cron-Secret", "")
-    return hmac.compare_digest(incoming, CRON_SECRET)
+    incoming = _get_secret_header(request)
+    if not incoming:
+        return False
+    return hmac.compare_digest(incoming.strip(), CRON_SECRET.strip())
 
 
 @csrf_exempt
@@ -30,7 +42,10 @@ def trigger_reminders(request):
     Dispatches due note reminders synchronously.
     """
     if not _is_authorized(request):
-        return JsonResponse({"error": "Unauthorized"}, status=401)
+        return JsonResponse(
+            {"error": "Unauthorized", "hint": "Set X-Cron-Secret header matching CRON_SECRET env var"},
+            status=401,
+        )
 
     from common.tasks import dispatch_due_reminders
     try:
