@@ -241,10 +241,30 @@ export default function ChatbotFAB() {
 
     try {
       const result = await analyseFile(file);
-      // Inject the result as a user message so the AI can act on it
-      const msg = `I uploaded a file called "${result.filename}". Here are the extracted key points:\n\n${result.extracted_content}\n\nPlease create a note titled "${result.suggested_title}" with this content.`;
       setPendingFile(null);
-      _send(msg, false);
+
+      // Show the extracted content as an assistant message so the user
+      // can see it and decide what to do — don't auto-create anything
+      const assistantPreview = {
+        role: 'assistant',
+        content: `I've analysed **${result.filename}**. Here's what I extracted:\n\n${result.extracted_content}\n\nWhat would you like to do with this? I can create a note, summarise it further, or answer questions about it.`,
+        timestamp: Date.now(),
+      };
+
+      setDisplayMessages((prev) => [...prev, assistantPreview]);
+
+      // Store in history so the AI has context for the follow-up message
+      setHistory((prev) => [
+        ...prev,
+        {
+          role: 'user',
+          content: `[File uploaded: ${result.filename}]\n\nExtracted content:\n${result.extracted_content}`,
+        },
+        {
+          role: 'assistant',
+          content: assistantPreview.content,
+        },
+      ]);
     } catch (err) {
       setPendingFile(null);
       setError(err?.response?.data?.error ?? err.message ?? 'File analysis failed');
@@ -645,7 +665,7 @@ export default function ChatbotFAB() {
               </Tooltip>
             )}
 
-            <Tooltip title="Attach image or text file">
+            <Tooltip title="Attach image or text file to analyse">
               <IconButton
                 size="small"
                 onClick={() => fileInputRef.current?.click()}
