@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Third-party
     "corsheaders",
+    "anymail",
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
@@ -208,15 +209,12 @@ CELERY_BEAT_SCHEDULE = {
 # ---------------------------------------------------------------------------
 # Email
 # ---------------------------------------------------------------------------
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
-EMAIL_PORT = config("EMAIL_PORT", default=465, cast=int)
-EMAIL_USE_TLS = False
-EMAIL_USE_SSL = True
-EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
-EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
-EMAIL_TIMEOUT = 10  # seconds — prevent worker timeout on SMTP failure
+EMAIL_BACKEND = "anymail.backends.sendgrid.EmailBackend"
+ANYMAIL = {
+    "SENDGRID_API_KEY": config("SENDGRID_API_KEY", default=""),
+}
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@fundoonotes.com")
+EMAIL_TIMEOUT = 10
 
 # ---------------------------------------------------------------------------
 # Frontend URL (used in email links)
