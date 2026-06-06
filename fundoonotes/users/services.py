@@ -44,11 +44,8 @@ def register_user(validated_data: dict) -> User:
     user.save()
 
     token = generate_verification_token(user.id)
-    try:
-        send_verification_email.delay(user.email, token)
-    except Exception:
-        send_verification_email(user.email, token)
-
+    # Send synchronously — no Celery worker needed on free tier
+    send_verification_email(user.email, token)
     return user
 
 
@@ -86,12 +83,8 @@ def initiate_login(username: str, password: str) -> str:
         raise serializers.ValidationError("Account is deactivated.")
 
     otp = generate_login_otp(user.id)
-    try:
-        send_login_otp_email.delay(user.email, otp)
-    except Exception:
-        # Celery unavailable — send synchronously so login always works
-        send_login_otp_email(user.email, otp)
-
+    # Send synchronously — no Celery worker needed on free tier
+    send_login_otp_email(user.email, otp)
     return user.email
 
 
@@ -158,7 +151,8 @@ def initiate_password_reset(email: str) -> None:
     try:
         user = User.objects.get(email=email)
         token = generate_password_reset_token(user.id)
-        send_password_reset_email.delay(user.email, token)
+        # Send synchronously — no Celery worker needed on free tier
+        send_password_reset_email(user.email, token)
     except User.DoesNotExist:
         pass  # Silent fail — no email enumeration
 
